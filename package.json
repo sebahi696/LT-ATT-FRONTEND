@@ -27,11 +27,11 @@
     "web-vitals": "^3.5.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "prebuild": "npm ci",
-    "build": "CI=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "npx react-scripts start",
+    "prebuild": "npm install -g react-scripts@5.0.1",
+    "build": "CI=false DISABLE_ESLINT_PLUGIN=true npx --yes react-scripts build",
+    "test": "npx react-scripts test",
+    "eject": "npx react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -52,6 +52,7 @@
     ]
   },
   "engines": {
-    "node": "16.x"
+    "node": "16.x",
+    "npm": "8.x"
   }
 }
