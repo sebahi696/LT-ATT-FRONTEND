@@ -16,8 +16,9 @@ const api = axios.create({
   baseURL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json'
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 15000, // 15 second timeout
   withCredentials: true // Enable sending cookies
 });
 
@@ -26,7 +27,8 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers['x-auth-token'] = token;
+      config.headers['x-auth-token'] = `${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
@@ -49,13 +51,23 @@ api.interceptors.response.use(
       // Clear invalid token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // Add a small delay before redirect to ensure local storage is cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
       window.location.href = '/login';
       return Promise.reject(new Error(ERROR_MESSAGES.AUTH_ERROR));
     }
 
     // Handle network errors
     if (!error.response) {
+      console.error('Network Error:', error);
       return Promise.reject(new Error(ERROR_MESSAGES.NETWORK_ERROR));
+    }
+
+    // Handle CORS errors
+    if (error.message?.includes('Network Error') || error.message?.includes('CORS')) {
+      console.error('CORS Error:', error);
+      return Promise.reject(new Error('Unable to connect to the server. Please try again later.'));
     }
 
     // Handle other errors
