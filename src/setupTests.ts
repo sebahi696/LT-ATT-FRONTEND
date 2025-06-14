@@ -5,6 +5,7 @@
 import '@testing-library/jest-dom';
 import { afterEach } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { vi } from 'vitest';
 
 // runs a cleanup after each test case
 afterEach(() => {
@@ -14,14 +15,14 @@ afterEach(() => {
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vitest.fn().mockImplementation((query: string) => ({
+  value: vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vitest.fn(),
-    removeListener: vitest.fn(),
-    addEventListener: vitest.fn(),
-    removeEventListener: vitest.fn(),
-    dispatchEvent: vitest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })

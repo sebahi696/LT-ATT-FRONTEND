@@ -1,97 +1,77 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Typography, CircularProgress, Alert, Grid, Button } from '@mui/material';
-import { PeopleAlt, AccessTime, CheckCircle, Cancel, Refresh } from '@mui/icons-material';
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import {
+  People as PeopleIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Cancel as CancelIcon,
+} from '@mui/icons-material';
 import { dashboardService } from '../../services/api';
-import { ERROR_MESSAGES } from '../../config';
-import type { DashboardStats, AttendanceRecord } from '../../types';
+import type { DashboardStats, RecentAttendance } from '../../types';
 
-const Dashboard: React.FC = () => {
+export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0,
+    activeEmployees: 0,
     todayAttendance: 0,
+    lateToday: 0,
     presentToday: 0,
     absentToday: 0,
   });
-  const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
+  const [recentAttendance, setRecentAttendance] = useState<RecentAttendance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [retryCount, setRetryCount] = useState(0);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      // Fetch stats and attendance data in parallel
-      const [statsResponse, attendanceResponse] = await Promise.all([
-        dashboardService.getStats(),
-        dashboardService.getRecentAttendance()
-      ]);
-
-      // Validate stats data
-      if (!statsResponse || typeof statsResponse !== 'object') {
-        throw new Error('Invalid stats data received');
-      }
-
-      // Validate attendance data
-      if (!Array.isArray(attendanceResponse)) {
-        console.error('Invalid attendance data:', attendanceResponse);
-        throw new Error('Invalid attendance data received');
-      }
-
-      // Update state with validated data
-      setStats({
-        totalEmployees: Number(statsResponse.totalEmployees) || 0,
-        todayAttendance: Number(statsResponse.todayAttendance) || 0,
-        presentToday: Number(statsResponse.presentToday) || 0,
-        absentToday: Number(statsResponse.absentToday) || 0,
-      });
-      setRecentAttendance(attendanceResponse);
-      setRetryCount(0); // Reset retry count on success
-    } catch (err: any) {
-      console.error('Error fetching dashboard data:', err);
-      setError(err.message || ERROR_MESSAGES.DEFAULT);
-      // Set default values in case of error
-      setStats({
-        totalEmployees: 0,
-        todayAttendance: 0,
-        presentToday: 0,
-        absentToday: 0,
-      });
-      setRecentAttendance([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch dashboard stats
+        const statsResponse = await dashboardService.getStats();
+        setStats({
+          totalEmployees: statsResponse.totalEmployees,
+          activeEmployees: statsResponse.activeEmployees,
+          todayAttendance: statsResponse.todayAttendance,
+          lateToday: statsResponse.lateToday,
+          presentToday: statsResponse.presentToday,
+          absentToday: statsResponse.absentToday,
+        });
+
+        // Fetch recent attendance
+        const attendanceResponse = await dashboardService.getRecentAttendance();
+        setRecentAttendance(attendanceResponse);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data');
+        setStats({
+          totalEmployees: 0,
+          activeEmployees: 0,
+          todayAttendance: 0,
+          lateToday: 0,
+          presentToday: 0,
+          absentToday: 0,
+        });
+        setRecentAttendance([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchDashboardData();
   }, []);
 
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-    fetchDashboardData();
-  };
-
-  const StatCard = ({ title, value, icon, color }: any) => (
-    <Card sx={{ height: '100%', minHeight: 140 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          {icon}
-          <Typography variant="h6" component="div" sx={{ ml: 1 }}>
-            {title}
-          </Typography>
-        </Box>
-        <Typography variant="h4" component="div" color={color}>
-          {value}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
       </Box>
     );
@@ -99,118 +79,120 @@ const Dashboard: React.FC = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert 
-          severity="error" 
-          sx={{ mb: 2 }}
-          action={
-            <Button 
-              color="inherit" 
-              size="small" 
-              onClick={handleRetry}
-              startIcon={<Refresh />}
-            >
-              Retry
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-        <Typography variant="body1" sx={{ mb: 2 }}>
-          Please try refreshing the page or contact support if the issue persists.
-        </Typography>
-        {retryCount > 0 && (
-          <Typography variant="body2" color="text.secondary">
-            Retry attempt: {retryCount}
-          </Typography>
-        )}
+      <Box m={2}>
+        <Alert severity="error">{error}</Alert>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Dashboard
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={handleRetry}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
-      </Box>
-      
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+    <Box p={3}>
+      <Typography variant="h4" gutterBottom>
+        Dashboard
+      </Typography>
+
+      <Grid container spacing={3}>
+        {/* Total Employees */}
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Employees"
-            value={stats.totalEmployees}
-            icon={<PeopleAlt color="primary" />}
-            color="primary"
-          />
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center">
+              <PeopleIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" variant="subtitle2">
+                  Total Employees
+                </Typography>
+                <Typography variant="h4">{stats.totalEmployees}</Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
+
+        {/* Present Today */}
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Today's Attendance"
-            value={stats.todayAttendance}
-            icon={<AccessTime color="info" />}
-            color="info"
-          />
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center">
+              <CheckCircleIcon color="success" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" variant="subtitle2">
+                  Present Today
+                </Typography>
+                <Typography variant="h4">{stats.presentToday}</Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
+
+        {/* Late Today */}
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Present Today"
-            value={stats.presentToday}
-            icon={<CheckCircle color="success" />}
-            color="success"
-          />
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center">
+              <WarningIcon color="warning" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" variant="subtitle2">
+                  Late Today
+                </Typography>
+                <Typography variant="h4">{stats.lateToday}</Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
+
+        {/* Absent Today */}
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Absent Today"
-            value={stats.absentToday}
-            icon={<Cancel color="error" />}
-            color="error"
-          />
+          <Paper sx={{ p: 2 }}>
+            <Box display="flex" alignItems="center">
+              <CancelIcon color="error" sx={{ fontSize: 40, mr: 2 }} />
+              <Box>
+                <Typography color="textSecondary" variant="subtitle2">
+                  Absent Today
+                </Typography>
+                <Typography variant="h4">{stats.absentToday}</Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
 
-      <Typography variant="h5" component="h2" gutterBottom>
-        Recent Attendance
-      </Typography>
-      
-      <Box sx={{ mt: 2 }}>
-        {Array.isArray(recentAttendance) && recentAttendance.length > 0 ? (
-          recentAttendance.map((record) => (
-            <Card key={record._id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="subtitle1">
-                    {record.employee?.name || 'Unknown Employee'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date(record.timestamp).toLocaleString()}
+      {/* Recent Attendance */}
+      <Box mt={4}>
+        <Typography variant="h5" gutterBottom>
+          Recent Attendance
+        </Typography>
+        <Paper>
+          <Box p={2}>
+            {recentAttendance.length > 0 ? (
+              recentAttendance.map((record, index) => (
+                <Box
+                  key={index}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  py={1}
+                  borderBottom={index < recentAttendance.length - 1 ? 1 : 0}
+                  borderColor="divider"
+                >
+                  <Box>
+                    <Typography variant="subtitle1">{record.employee.name}</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {new Date(record.timestamp).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="subtitle2"
+                    color={record.isLate ? 'warning.main' : 'success.main'}
+                  >
+                    {record.isLate ? 'Late' : 'On Time'}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Department: {record.employee?.department || 'Unknown Department'}
-                </Typography>
-                <Typography variant="body2" color={record.type === 'checkIn' ? 'success.main' : 'error.main'}>
-                  {record.type === 'checkIn' ? 'Checked In' : 'Checked Out'}
-                </Typography>
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          <Alert severity="info">No recent attendance records found</Alert>
-        )}
+              ))
+            ) : (
+              <Typography variant="body1" color="textSecondary" align="center">
+                No recent attendance records
+              </Typography>
+            )}
+          </Box>
+        </Paper>
       </Box>
     </Box>
   );
-};
-
-export default Dashboard; 
+}; 

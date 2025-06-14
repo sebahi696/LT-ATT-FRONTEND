@@ -1,61 +1,47 @@
-export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://lt-att-backend.onrender.com'
-  : 'http://localhost:5001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const API_ENDPOINTS = {
   // Auth endpoints
-  LOGIN: '/api/auth/login',
-  REGISTER: '/api/auth/register',
-  GET_USER: '/api/auth/user',
-  
-  // User endpoints
-  GET_USER_PROFILE: '/api/users/profile',
-  UPDATE_USER_PROFILE: '/api/users/profile',
+  LOGIN: '/auth/login',
+  LOGOUT: '/auth/logout',
+  CURRENT_USER: '/auth/me',
   
   // Employee endpoints
-  GET_EMPLOYEES: '/api/admin/employees',
-  ADD_EMPLOYEE: '/api/admin/employees',
-  UPDATE_EMPLOYEE: '/api/admin/employees',
-  DELETE_EMPLOYEE: '/api/admin/employees',
-  
-  // Attendance endpoints
-  GET_ATTENDANCE: '/api/attendance',
-  MARK_ATTENDANCE: '/api/attendance/mark',
-  GET_ATTENDANCE_REPORT: '/api/attendance/report',
+  EMPLOYEES: '/employees',
+  EMPLOYEE_PROFILE: '/employees/profile',
   
   // Department endpoints
-  GET_DEPARTMENTS: '/api/admin/departments',
-  ADD_DEPARTMENT: '/api/admin/departments',
-  UPDATE_DEPARTMENT: '/api/admin/departments',
-  DELETE_DEPARTMENT: '/api/admin/departments',
+  DEPARTMENTS: '/departments',
+  
+  // Attendance endpoints
+  ATTENDANCE: '/attendance',
+  ATTENDANCE_HISTORY: '/attendance/history',
+  MARK_ATTENDANCE: '/attendance/mark',
   
   // QR Code endpoints
-  GENERATE_QR: '/api/admin/qr/generate',
-  VALIDATE_QR: '/api/attendance/qr/validate',
+  GENERATE_QR: '/qr/generate',
+  VALIDATE_QR: '/qr/validate',
   
-  // Dashboard endpoints
-  GET_DASHBOARD_STATS: '/api/admin/dashboard/stats',
-  GET_RECENT_ATTENDANCE: '/api/admin/dashboard/recent-attendance',
-  
-  // Reports endpoints
-  GET_SALARY_REPORT: '/api/admin/reports/salary'
+  // Reports
+  ATTENDANCE_REPORT: '/reports/attendance',
+  SALARY_REPORT: '/reports/salary'
 };
 
 export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Unable to connect to the server. Please check your internet connection.',
-  AUTH_ERROR: 'Authentication failed. Please log in again.',
-  SERVER_ERROR: 'An error occurred on the server. Please try again later.',
-  VALIDATION_ERROR: 'Please check your input and try again.',
-  NOT_FOUND: 'The requested resource was not found.',
-  UNAUTHORIZED: 'You are not authorized to perform this action.',
-  DEFAULT: 'An unexpected error occurred. Please try again.'
-};
+  DEFAULT: 'An error occurred. Please try again.',
+  NETWORK: 'Network error. Please check your connection.',
+  UNAUTHORIZED: 'Unauthorized access. Please login again.',
+  INVALID_QR: 'Invalid QR code.',
+  LOCATION_REQUIRED: 'Location access is required for attendance.',
+  LOCATION_ERROR: 'Could not get your location. Please enable location services.',
+  CAMERA_PERMISSION: 'Camera permission is required for scanning.',
+  CAMERA_ERROR: 'Could not access camera. Please check permissions.',
+} as const;
 
 export const SUCCESS_MESSAGES = {
-  LOGIN: 'Successfully logged in',
-  LOGOUT: 'Successfully logged out',
-  SAVE: 'Changes saved successfully',
-  DELETE: 'Item deleted successfully',
-  CREATE: 'Item created successfully',
-  UPDATE: 'Item updated successfully'
-}; 
+  SAVE: 'Attendance marked successfully!',
+  LOGIN: 'Logged in successfully!',
+  LOGOUT: 'Logged out successfully!',
+  UPDATE: 'Updated successfully!',
+  DELETE: 'Deleted successfully!',
+} as const; 

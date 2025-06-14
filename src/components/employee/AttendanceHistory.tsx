@@ -1,74 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Paper,
   Typography,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Alert,
   CircularProgress,
-  Grid,
-  Card,
-  CardContent
+  Alert,
 } from '@mui/material';
-import {
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
 import { attendanceService } from '../../services/api';
-import { ERROR_MESSAGES } from '../../config';
 import type { Attendance } from '../../types';
 
-interface AttendanceSummary {
-  totalDays: number;
-  presentDays: number;
-  lateDays: number;
-  absentDays: number;
-  attendancePercentage: number;
+interface AttendanceRecord {
+  date: string;
+  time: string;
+  status: 'present' | 'late' | 'absent';
+  location: string;
 }
 
-const AttendanceHistory: React.FC = () => {
-  const [records, setRecords] = useState<Attendance[]>([]);
-  const [summary, setSummary] = useState<AttendanceSummary | null>(null);
+export const AttendanceHistory: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [stats, setStats] = useState({
+    presentDays: 0,
+    lateDays: 0,
+    totalDays: 0,
+  });
 
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const attendanceData = await attendanceService.getAll();
-        
-        // Process attendance data
-        const processedRecords = attendanceData.map(record => ({
-          ...record,
+        setLoading(true);
+        setError(null);
+
+        const attendanceData = await attendanceService.getHistory();
+
+        // Process the attendance data
+        const processedRecords: AttendanceRecord[] = attendanceData.map((record: Attendance) => ({
           date: new Date(record.timestamp).toLocaleDateString(),
-          status: record.type === 'checkIn' ? 'present' : 'absent'
+          time: new Date(record.timestamp).toLocaleTimeString(),
+          status: record.isLate ? 'late' : 'present',
+          location: `${record.location[0].toFixed(6)}, ${record.location[1].toFixed(6)}`,
         }));
 
-        // Calculate summary
-        const totalDays = processedRecords.length;
-        const presentDays = processedRecords.filter(r => r.status === 'present').length;
-        const lateDays = processedRecords.filter(r => r.status === 'late').length;
-        const absentDays = totalDays - presentDays - lateDays;
-        const attendancePercentage = (presentDays / totalDays) * 100;
+        // Calculate statistics
+        const presentDays = processedRecords.filter((r: AttendanceRecord) => r.status === 'present').length;
+        const lateDays = processedRecords.filter((r: AttendanceRecord) => r.status === 'late').length;
 
-        setRecords(processedRecords);
-        setSummary({
-          totalDays,
+        setAttendanceRecords(processedRecords);
+        setStats({
           presentDays,
           lateDays,
-          absentDays,
-          attendancePercentage
+          totalDays: processedRecords.length,
         });
-        setError('');
-      } catch (err: any) {
+      } catch (err) {
+        setError('Failed to fetch attendance history');
         console.error('Error fetching attendance:', err);
-        setError(err.message || ERROR_MESSAGES.DEFAULT);
       } finally {
         setLoading(false);
       }
@@ -79,123 +71,76 @@ const AttendanceHistory: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
       </Box>
     );
   }
 
+  if (error) {
+    return (
+      <Box m={2}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
+    <Box p={3}>
       <Typography variant="h4" gutterBottom>
-        My Attendance History
+        Attendance History
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {summary && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Total Days
-                </Typography>
-                <Typography variant="h4">
-                  {summary.totalDays}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Present Days
-                </Typography>
-                <Typography variant="h4" color="success.main">
-                  {summary.presentDays}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Late Days
-                </Typography>
-                <Typography variant="h4" color="warning.main">
-                  {summary.lateDays}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Attendance Rate
-                </Typography>
-                <Typography variant="h4" color="primary">
-                  {summary.attendancePercentage.toFixed(1)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
+      <Box mb={4}>
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Summary
+          </Typography>
+          <Box display="flex" gap={4}>
+            <Box>
+              <Typography color="textSecondary">Present Days</Typography>
+              <Typography variant="h5">{stats.presentDays}</Typography>
+            </Box>
+            <Box>
+              <Typography color="textSecondary">Late Days</Typography>
+              <Typography variant="h5">{stats.lateDays}</Typography>
+            </Box>
+            <Box>
+              <Typography color="textSecondary">Total Days</Typography>
+              <Typography variant="h5">{stats.totalDays}</Typography>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Date</TableCell>
-              <TableCell>Status</TableCell>
               <TableCell>Time</TableCell>
-              <TableCell>Type</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Location</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {records.map((record) => (
-              <TableRow key={record._id}>
+            {attendanceRecords.map((record, index) => (
+              <TableRow key={index}>
+                <TableCell>{record.date}</TableCell>
+                <TableCell>{record.time}</TableCell>
                 <TableCell>
-                  {new Date(record.timestamp).toLocaleDateString()}
+                  <Typography
+                    color={record.status === 'present' ? 'success.main' : 'warning.main'}
+                  >
+                    {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                  </Typography>
                 </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {record.type === 'checkIn' ? (
-                      <CheckCircleIcon color="success" sx={{ mr: 1 }} />
-                    ) : (
-                      <CancelIcon color="error" sx={{ mr: 1 }} />
-                    )}
-                    {record.type === 'checkIn' ? 'Present' : 'Absent'}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  {new Date(record.timestamp).toLocaleTimeString()}
-                </TableCell>
-                <TableCell>
-                  {record.type === 'checkIn' ? 'Check In' : 'Check Out'}
-                </TableCell>
+                <TableCell>{record.location}</TableCell>
               </TableRow>
             ))}
-            {records.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} align="center">
-                  No attendance records found
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </TableContainer>
     </Box>
   );
-};
-
-export default AttendanceHistory; 
+}; 
