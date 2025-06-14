@@ -18,14 +18,22 @@ export default defineConfig({
           vendor: [
             'react',
             'react-dom',
-            'react-router-dom',
+            'react-router-dom'
+          ],
+          mui: [
             '@mui/material',
-            '@mui/icons-material'
+            '@mui/icons-material',
+            '@mui/x-data-grid',
+            '@mui/x-date-pickers'
           ]
-        }
+        },
+        assetFileNames: 'assets/[name].[hash].[ext]',
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js'
       }
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096
   },
   server: {
     port: 3000
