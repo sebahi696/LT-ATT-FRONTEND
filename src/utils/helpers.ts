@@ -1,4 +1,4 @@
-import { Attendance } from '../types';
+import { Attendance } from '../types/attendance';
 
 export const formatDate = (date: string | Date): string => {
   return new Date(date).toLocaleDateString('en-US', {
@@ -15,25 +15,28 @@ export const formatTime = (date: string | Date): string => {
   });
 };
 
-export const calculateWorkHours = (checkIn: Date, checkOut: Date): number => {
-  const diffInMs = checkOut.getTime() - checkIn.getTime();
-  return Math.round((diffInMs / (1000 * 60 * 60)) * 100) / 100;
+export const calculateWorkHours = (startTime: Date, endTime: Date): number => {
+  const diffInMilliseconds = endTime.getTime() - startTime.getTime();
+  return Math.round((diffInMilliseconds / (1000 * 60 * 60)) * 100) / 100;
+};
+
+export const isLate = (attendance: Attendance): boolean => {
+  const checkInTime = new Date(attendance.checkIn.time);
+  const scheduledTime = new Date(attendance.date);
+  scheduledTime.setHours(9, 0, 0); // Assuming work starts at 9 AM
+
+  return checkInTime > scheduledTime;
 };
 
 export const getAttendanceStatus = (attendance: Attendance): string => {
-  const checkInTime = new Date(attendance.checkIn.time);
-  const scheduledTime = new Date(attendance.date);
-  scheduledTime.setHours(9, 0, 0); // Assuming 9 AM is the start time
-
-  const diffInMinutes = (checkInTime.getTime() - scheduledTime.getTime()) / (1000 * 60);
-
-  if (diffInMinutes > 30) {
+  if (isLate(attendance)) {
     return 'late';
   } else if (!attendance.checkOut) {
-    return 'present';
+    return 'pending';
   } else {
+    const checkInTime = new Date(attendance.checkIn.time);
     const workHours = calculateWorkHours(checkInTime, new Date(attendance.checkOut.time));
-    return workHours < 4 ? 'half_day' : 'present';
+    return workHours >= 8 ? 'present' : 'partial';
   }
 };
 

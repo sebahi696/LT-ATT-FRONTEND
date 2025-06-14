@@ -1,12 +1,28 @@
+export interface Location {
+  latitude: number;
+  longitude: number;
+}
+
+export interface TimeRecord {
+  time: string;
+  location?: Location;
+}
+
 export interface Attendance {
   _id: string;
   employeeId: string;
   date: string;
-  checkIn: string;
-  checkOut?: string;
+  checkIn: TimeRecord;
+  checkOut?: TimeRecord;
   status: 'present' | 'absent' | 'late';
-  location?: {
-    latitude: number;
-    longitude: number;
-  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AttendanceRecord {
+  date: string;
+  checkIn: TimeRecord;
+  checkOut?: TimeRecord;
+  status: string;
+  location?: Location;
 } 
