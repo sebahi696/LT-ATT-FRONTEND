@@ -17,8 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "allowJs": true,
     "esModuleInterop": true,
-    "types": ["node", "jest", "@testing-library/jest-dom"],
     "baseUrl": ".",
+    "types": ["vitest/globals", "vite/client"],
     "paths": {
       "@/*": ["src/*"]
     }
