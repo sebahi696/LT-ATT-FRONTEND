@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Typography, CircularProgress, Alert, Grid } from '@mui/material';
-import { PeopleAlt, AccessTime, CheckCircle, Cancel } from '@mui/icons-material';
+import { Box, Card, CardContent, Typography, CircularProgress, Alert, Grid, Button } from '@mui/material';
+import { PeopleAlt, AccessTime, CheckCircle, Cancel, Refresh } from '@mui/icons-material';
 import { dashboardService } from '../../services/api';
 import { ERROR_MESSAGES } from '../../config';
 import type { DashboardStats, AttendanceRecord } from '../../types';
@@ -15,53 +15,63 @@ const Dashboard: React.FC = () => {
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Fetch stats and attendance data in parallel
+      const [statsResponse, attendanceResponse] = await Promise.all([
+        dashboardService.getStats(),
+        dashboardService.getRecentAttendance()
+      ]);
+
+      // Validate stats data
+      if (!statsResponse || typeof statsResponse !== 'object') {
+        throw new Error('Invalid stats data received');
+      }
+
+      // Validate attendance data
+      if (!Array.isArray(attendanceResponse)) {
+        console.error('Invalid attendance data:', attendanceResponse);
+        throw new Error('Invalid attendance data received');
+      }
+
+      // Update state with validated data
+      setStats({
+        totalEmployees: Number(statsResponse.totalEmployees) || 0,
+        todayAttendance: Number(statsResponse.todayAttendance) || 0,
+        presentToday: Number(statsResponse.presentToday) || 0,
+        absentToday: Number(statsResponse.absentToday) || 0,
+      });
+      setRecentAttendance(attendanceResponse);
+      setRetryCount(0); // Reset retry count on success
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.message || ERROR_MESSAGES.DEFAULT);
+      // Set default values in case of error
+      setStats({
+        totalEmployees: 0,
+        todayAttendance: 0,
+        presentToday: 0,
+        absentToday: 0,
+      });
+      setRecentAttendance([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        // Fetch stats and attendance data in parallel
-        const [statsResponse, attendanceResponse] = await Promise.all([
-          dashboardService.getStats(),
-          dashboardService.getRecentAttendance()
-        ]);
-
-        // Validate stats data
-        if (!statsResponse || typeof statsResponse !== 'object') {
-          throw new Error('Invalid stats data received');
-        }
-
-        // Validate attendance data
-        const validAttendanceData = Array.isArray(attendanceResponse) ? attendanceResponse : [];
-
-        // Update state with validated data
-        setStats({
-          totalEmployees: statsResponse.totalEmployees || 0,
-          todayAttendance: statsResponse.todayAttendance || 0,
-          presentToday: statsResponse.presentToday || 0,
-          absentToday: statsResponse.absentToday || 0,
-        });
-        setRecentAttendance(validAttendanceData);
-      } catch (err: any) {
-        console.error('Error fetching dashboard data:', err);
-        setError(err.message || ERROR_MESSAGES.DEFAULT);
-        // Set default values in case of error
-        setStats({
-          totalEmployees: 0,
-          todayAttendance: 0,
-          presentToday: 0,
-          absentToday: 0,
-        });
-        setRecentAttendance([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
   }, []);
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    fetchDashboardData();
+  };
 
   const StatCard = ({ title, value, icon, color }: any) => (
     <Card sx={{ height: '100%', minHeight: 140 }}>
@@ -90,19 +100,49 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-        <Typography variant="body1">
+        <Alert 
+          severity="error" 
+          sx={{ mb: 2 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={handleRetry}
+              startIcon={<Refresh />}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+        <Typography variant="body1" sx={{ mb: 2 }}>
           Please try refreshing the page or contact support if the issue persists.
         </Typography>
+        {retryCount > 0 && (
+          <Typography variant="body2" color="text.secondary">
+            Retry attempt: {retryCount}
+          </Typography>
+        )}
       </Box>
     );
   }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Dashboard
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Dashboard
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={handleRetry}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </Box>
       
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -144,7 +184,7 @@ const Dashboard: React.FC = () => {
       </Typography>
       
       <Box sx={{ mt: 2 }}>
-        {recentAttendance.length > 0 ? (
+        {Array.isArray(recentAttendance) && recentAttendance.length > 0 ? (
           recentAttendance.map((record) => (
             <Card key={record._id} sx={{ mb: 2 }}>
               <CardContent>

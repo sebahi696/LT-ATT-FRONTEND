@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { API_BASE_URL, API_ENDPOINTS, ERROR_MESSAGES } from '../config';
 import type { AuthResponse, User, Employee, Department, Attendance, QRCode } from '../types';
 
@@ -9,41 +9,6 @@ const api = axios.create({
   },
   withCredentials: true
 });
-
-// Add request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['x-auth-token'] = token;
-    }
-    return config;
-  },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor
-api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return Promise.reject(new Error(ERROR_MESSAGES.AUTH_ERROR));
-    }
-    
-    if (!error.response) {
-      return Promise.reject(new Error(ERROR_MESSAGES.NETWORK_ERROR));
-    }
-    
-    const errorMessage = error.response.data?.message || error.response.data?.msg || ERROR_MESSAGES.DEFAULT;
-    return Promise.reject(new Error(errorMessage));
-  }
-);
 
 // Auth Services
 export const authService = {
@@ -231,13 +196,7 @@ export const dashboardService = {
       return response.data;
     } catch (error: any) {
       console.error('Get dashboard stats error:', error);
-      if (error.response?.status === 401) {
-        throw new Error(ERROR_MESSAGES.AUTH_ERROR);
-      }
-      if (!error.response) {
-        throw new Error(ERROR_MESSAGES.NETWORK_ERROR);
-      }
-      throw new Error(error.response?.data?.message || ERROR_MESSAGES.DEFAULT);
+      throw error;
     }
   },
   
@@ -250,13 +209,7 @@ export const dashboardService = {
       return response.data;
     } catch (error: any) {
       console.error('Get recent attendance error:', error);
-      if (error.response?.status === 401) {
-        throw new Error(ERROR_MESSAGES.AUTH_ERROR);
-      }
-      if (!error.response) {
-        throw new Error(ERROR_MESSAGES.NETWORK_ERROR);
-      }
-      throw new Error(error.response?.data?.message || ERROR_MESSAGES.DEFAULT);
+      throw error;
     }
   }
 };
