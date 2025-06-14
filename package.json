@@ -28,6 +28,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "npm ci",
     "build": "CI=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -51,6 +52,6 @@
     ]
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": "16.x"
   }
 }
