@@ -1,4 +1,8 @@
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const isDevelopment = import.meta.env.MODE === 'development';
+
+export const API_URL = isDevelopment 
+  ? 'http://localhost:5001'
+  : 'https://lt-att-backend.onrender.com';
 
 export const API_ENDPOINTS = {
   // Auth endpoints

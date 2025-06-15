@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: lt-att-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://lt-att-backend.onrender.com
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html 
